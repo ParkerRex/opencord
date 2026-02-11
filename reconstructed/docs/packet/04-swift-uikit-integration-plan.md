@@ -12,6 +12,12 @@
 2. Swift wrapper module converting C ABI to Swift async-friendly APIs.
 3. Feature modules consume wrapper via protocols.
 
+## FFI Scaffold (current)
+
+- `crates/opencord_ffi` owns the exported C ABI for Swift.
+- `cbindgen` config is at `crates/opencord_ffi/cbindgen.toml`.
+- Header generation script: `scripts/generate-ffi-header.sh` -> `include/opencord_ffi.h`.
+
 ## Suggested Milestones
 
 1. Bridge auth/session calls first.

@@ -11,6 +11,7 @@ use tokio::sync::watch;
 use tokio::time::{self, Instant, Interval, MissedTickBehavior};
 use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream, connect_async};
+use tracing::{debug, trace, warn};
 
 #[derive(Debug, Clone)]
 pub enum GatewayRuntimeEvent {
@@ -79,9 +80,11 @@ impl GatewayClient {
     {
         let mut state_machine = GatewayStateMachine::new(state_machine_config);
         let mut reconnect_attempt = 0u32;
+        debug!(gateway_url = %self.gateway_url(), "starting gateway runtime");
 
         loop {
             if should_shutdown(&shutdown) {
+                debug!("gateway runtime received shutdown before connect");
                 on_runtime_event(GatewayRuntimeEvent::Shutdown);
                 return Ok(());
             }
@@ -91,10 +94,16 @@ impl GatewayClient {
             let connect_result = connect_async(self.gateway_url().as_str()).await;
             let (mut socket, _) = match connect_result {
                 Ok(connection) => connection,
-                Err(_) => {
+                Err(error) => {
                     state_machine.on_disconnect();
                     reconnect_attempt = reconnect_attempt.saturating_add(1);
                     let delay = options.reconnect_delay(reconnect_attempt);
+                    warn!(
+                        attempt = reconnect_attempt,
+                        delay_ms = delay.as_millis().min(u128::from(u64::MAX)) as u64,
+                        error = %error,
+                        "gateway connect failed; scheduling reconnect"
+                    );
                     on_runtime_event(GatewayRuntimeEvent::ReconnectScheduled {
                         attempt: reconnect_attempt,
                         resumable: state_machine.can_resume(),
@@ -111,6 +120,7 @@ impl GatewayClient {
             };
 
             reconnect_attempt = 0;
+            debug!("gateway websocket connected");
 
             let reconnect_resumable = run_connection_loop(
                 &mut socket,
@@ -132,6 +142,7 @@ impl GatewayClient {
                 });
 
                 if wait_for_reconnect_delay(delay, &mut shutdown).await {
+                    debug!("gateway runtime shutdown during reconnect delay");
                     on_runtime_event(GatewayRuntimeEvent::Shutdown);
                     return Ok(());
                 }
@@ -139,6 +150,7 @@ impl GatewayClient {
                 continue;
             }
 
+            debug!("gateway runtime stopping without reconnect");
             on_runtime_event(GatewayRuntimeEvent::Shutdown);
             return Ok(());
         }
@@ -213,17 +225,26 @@ where
 {
     match message {
         Message::Text(text) => {
+            trace!("gateway text frame received");
             let event = crate::parse_event(text.as_ref())?;
             on_runtime_event(GatewayRuntimeEvent::GatewayEvent(event.clone()));
             process_event_actions(event, socket, state_machine, heartbeat_interval).await
         }
         Message::Binary(_) => {
+            trace!("gateway binary frame received");
             let event = GatewayEvent::NonTextFrame;
             on_runtime_event(GatewayRuntimeEvent::GatewayEvent(event.clone()));
             process_event_actions(event, socket, state_machine, heartbeat_interval).await
         }
-        Message::Close(_) => Ok(Some(state_machine.can_resume())),
+        Message::Close(_) => {
+            debug!(
+                can_resume = state_machine.can_resume(),
+                "gateway close frame received"
+            );
+            Ok(Some(state_machine.can_resume()))
+        }
         Message::Ping(payload) => {
+            trace!("gateway ping frame received");
             socket.send(Message::Pong(payload)).await?;
             Ok(None)
         }
@@ -257,21 +278,34 @@ async fn apply_state_action(
             let mut schedule = time::interval_at(Instant::now() + *interval, *interval);
             schedule.set_missed_tick_behavior(MissedTickBehavior::Skip);
             *heartbeat_interval = Some(schedule);
+            debug!(
+                heartbeat_interval_ms = interval.as_millis().min(u128::from(u64::MAX)) as u64,
+                "configured gateway heartbeat schedule"
+            );
             Ok(None)
         }
         GatewayStateAction::SendIdentify(command) => {
+            trace!("sending IDENTIFY command to gateway");
             send_command(socket, command).await?;
             Ok(None)
         }
         GatewayStateAction::SendResume(command) => {
+            trace!("sending RESUME command to gateway");
             send_command(socket, command).await?;
             Ok(None)
         }
         GatewayStateAction::SendHeartbeat(command) => {
+            trace!("sending HEARTBEAT command to gateway");
             send_command(socket, command).await?;
             Ok(None)
         }
-        GatewayStateAction::Reconnect { resumable } => Ok(Some(*resumable)),
+        GatewayStateAction::Reconnect { resumable } => {
+            warn!(
+                resumable = *resumable,
+                "gateway state machine requested reconnect"
+            );
+            Ok(Some(*resumable))
+        }
     }
 }
 
@@ -279,6 +313,7 @@ async fn send_command<T: Serialize>(
     socket: &mut GatewaySocket,
     command: &GatewayCommand<T>,
 ) -> Result<(), GatewayError> {
+    trace!(op = command.op, "serializing gateway command");
     let payload = serde_json::to_string(command)?;
     socket.send(Message::Text(payload.into())).await?;
     Ok(())

@@ -1,5 +1,5 @@
 [package]
-name = "opencord_ffi"
+name = "discord_ffi"
 edition.workspace = true
 license.workspace = true
 version.workspace = true
@@ -8,8 +8,10 @@ version.workspace = true
 crate-type = ["cdylib", "staticlib", "rlib"]
 
 [dependencies]
+discord_api_types = { path = "../discord_api_types" }
 discord_auth = { path = "../discord_auth" }
 discord_client = { path = "../discord_client" }
+discord_gateway = { path = "../discord_gateway" }
 discord_http = { path = "../discord_http" }
 discord_storage = { path = "../discord_storage" }
 serde_json.workspace = true

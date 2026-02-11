@@ -6,7 +6,7 @@ members = [
   "crates/discord_auth",
   "crates/discord_storage",
   "crates/discord_client",
-  "crates/opencord_ffi",
+  "crates/discord_ffi",
 ]
 resolver = "2"
 

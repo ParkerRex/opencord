@@ -10,3 +10,4 @@ Read in order:
 3. `03-rust-build-plan.md`
 4. `04-swift-uikit-integration-plan.md`
 5. `05-swift-ffi-contract.md`
+6. `06-testing-and-regression-plan.md`

@@ -14,9 +14,9 @@
 
 ## FFI Scaffold (current)
 
-- `crates/opencord_ffi` owns the exported C ABI for Swift.
-- `cbindgen` config is at `crates/opencord_ffi/cbindgen.toml`.
-- Header generation script: `scripts/generate-ffi-header.sh` -> `include/opencord_ffi.h`.
+- `crates/discord_ffi` owns the exported C ABI for Swift.
+- `cbindgen` config is at `crates/discord_ffi/cbindgen.toml`.
+- Header generation script: `scripts/generate-ffi-header.sh` -> `include/discord_ffi.h`.
 
 ## Suggested Milestones
 

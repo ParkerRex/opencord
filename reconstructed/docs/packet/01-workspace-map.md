@@ -8,7 +8,7 @@
 - `discord_auth`
 - `discord_storage`
 - `discord_client`
-- `opencord_ffi`
+- `discord_ffi`
 
 ## Responsibility Split
 
@@ -18,4 +18,4 @@
 - `discord_auth`: token provider abstractions.
 - `discord_storage`: key-value persistence abstraction.
 - `discord_client`: façade integrating auth/http/storage/gateway.
-- `opencord_ffi`: C ABI boundary for Swift/UIKit integration (`cbindgen` header source).
+- `discord_ffi`: C ABI boundary for Swift/UIKit integration (`cbindgen` header source).

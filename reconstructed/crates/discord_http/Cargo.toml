@@ -1,0 +1,12 @@
+[package]
+name = "discord_http"
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+
+[dependencies]
+discord_api_types = { path = "../discord_api_types" }
+reqwest.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+url.workspace = true

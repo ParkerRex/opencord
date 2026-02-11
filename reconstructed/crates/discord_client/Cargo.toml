@@ -1,0 +1,16 @@
+[package]
+name = "discord_client"
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+
+[dependencies]
+discord_api_types = { path = "../discord_api_types" }
+discord_auth = { path = "../discord_auth" }
+discord_gateway = { path = "../discord_gateway" }
+discord_http = { path = "../discord_http" }
+discord_storage = { path = "../discord_storage" }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+url.workspace = true

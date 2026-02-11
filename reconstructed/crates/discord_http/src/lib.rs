@@ -6,10 +6,21 @@ use discord_api_types::{
     Channel, CreateMessageRequest, CurrentUserGuild, GatewayBotInfo, GetChannelMessagesQuery,
     GetCurrentUserGuildsQuery, Message, Snowflake, User,
 };
-use reqwest::StatusCode;
-use serde::{Serialize, de::DeserializeOwned};
+use reqwest::{
+    StatusCode,
+    header::{HeaderMap, HeaderName, HeaderValue, RETRY_AFTER},
+};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
+use std::time::Duration;
 use thiserror::Error;
+use tokio::time::sleep;
+use tracing::{debug, warn};
 use url::Url;
+
+const MAX_RATE_LIMIT_RETRIES: usize = 5;
+const DEFAULT_RATE_LIMIT_RETRY_AFTER: Duration = Duration::from_secs(1);
+const MIN_RATE_LIMIT_RETRY_AFTER: Duration = Duration::from_millis(50);
+const MAX_RATE_LIMIT_RETRY_AFTER: Duration = Duration::from_secs(30);
 
 #[derive(Debug, Error)]
 pub enum HttpError {
@@ -59,11 +70,17 @@ impl DiscordHttpClient {
     where
         T: DeserializeOwned,
     {
-        let mut req = self.client.get(self.endpoint(path)?);
-        if let Some(token) = bearer_token {
-            req = req.bearer_auth(token);
-        }
-        decode_response(req.send().await?).await
+        let response = self
+            .send_with_rate_limit_retry("GET", path, || {
+                let mut req = self.client.get(self.endpoint(path)?);
+                if let Some(token) = bearer_token {
+                    req = req.bearer_auth(token);
+                }
+                Ok(req)
+            })
+            .await?;
+
+        decode_response(response).await
     }
 
     pub async fn get_json_with_query<Q, T>(
@@ -76,11 +93,17 @@ impl DiscordHttpClient {
         Q: Serialize + ?Sized,
         T: DeserializeOwned,
     {
-        let mut req = self.client.get(self.endpoint(path)?).query(query);
-        if let Some(token) = bearer_token {
-            req = req.bearer_auth(token);
-        }
-        decode_response(req.send().await?).await
+        let response = self
+            .send_with_rate_limit_retry("GET", path, || {
+                let mut req = self.client.get(self.endpoint(path)?).query(query);
+                if let Some(token) = bearer_token {
+                    req = req.bearer_auth(token);
+                }
+                Ok(req)
+            })
+            .await?;
+
+        decode_response(response).await
     }
 
     pub async fn post_json<B, T>(
@@ -93,11 +116,17 @@ impl DiscordHttpClient {
         B: Serialize + ?Sized,
         T: DeserializeOwned,
     {
-        let mut req = self.client.post(self.endpoint(path)?).json(payload);
-        if let Some(token) = bearer_token {
-            req = req.bearer_auth(token);
-        }
-        decode_response(req.send().await?).await
+        let response = self
+            .send_with_rate_limit_retry("POST", path, || {
+                let mut req = self.client.post(self.endpoint(path)?).json(payload);
+                if let Some(token) = bearer_token {
+                    req = req.bearer_auth(token);
+                }
+                Ok(req)
+            })
+            .await?;
+
+        decode_response(response).await
     }
 
     pub async fn get_route<R>(
@@ -193,6 +222,64 @@ impl DiscordHttpClient {
         };
         self.post_route(&route, Some(bearer_token)).await
     }
+
+    async fn send_with_rate_limit_retry<F>(
+        &self,
+        method: &'static str,
+        path: &str,
+        build_request: F,
+    ) -> Result<reqwest::Response, HttpError>
+    where
+        F: Fn() -> Result<reqwest::RequestBuilder, HttpError>,
+    {
+        for attempt in 1..=(MAX_RATE_LIMIT_RETRIES + 1) {
+            let response = build_request()?.send().await?;
+            let status = response.status();
+
+            if status != StatusCode::TOO_MANY_REQUESTS {
+                debug!(
+                    http_method = method,
+                    http_path = path,
+                    attempt,
+                    status = status.as_u16(),
+                    "discord http request completed"
+                );
+                return Ok(response);
+            }
+
+            let headers = response.headers().clone();
+            let body = response
+                .text()
+                .await
+                .unwrap_or_else(|_| String::from("<no body>"));
+
+            if attempt > MAX_RATE_LIMIT_RETRIES {
+                warn!(
+                    http_method = method,
+                    http_path = path,
+                    attempt,
+                    status = status.as_u16(),
+                    "discord http rate-limit retries exhausted"
+                );
+                return Err(HttpError::Status { status, body });
+            }
+
+            let retry_after = parse_rate_limit_retry_after(&headers, &body)
+                .unwrap_or(DEFAULT_RATE_LIMIT_RETRY_AFTER);
+            let retry_after_ms = retry_after.as_millis().min(u128::from(u64::MAX)) as u64;
+
+            warn!(
+                http_method = method,
+                http_path = path,
+                attempt,
+                retry_after_ms,
+                "discord http request rate-limited, retrying"
+            );
+            sleep(retry_after).await;
+        }
+
+        unreachable!("retry loop returns before exhausting")
+    }
 }
 
 async fn decode_response<T>(response: reqwest::Response) -> Result<T, HttpError>
@@ -211,13 +298,93 @@ where
     Err(HttpError::Status { status, body })
 }
 
+fn parse_rate_limit_retry_after(headers: &HeaderMap, body: &str) -> Option<Duration> {
+    parse_header_retry_after(headers.get(RETRY_AFTER))
+        .or_else(|| {
+            parse_header_retry_after(
+                headers.get(HeaderName::from_static("x-ratelimit-reset-after")),
+            )
+        })
+        .or_else(|| parse_body_retry_after(body))
+        .map(clamp_retry_after)
+}
+
+fn parse_header_retry_after(value: Option<&HeaderValue>) -> Option<Duration> {
+    let value = value?;
+    let value = value.to_str().ok()?;
+    parse_retry_after_from_str(value)
+}
+
+fn parse_body_retry_after(body: &str) -> Option<Duration> {
+    #[derive(Debug, Deserialize)]
+    struct RateLimitBody {
+        retry_after: Option<f64>,
+    }
+
+    let parsed: RateLimitBody = serde_json::from_str(body).ok()?;
+    parse_retry_after_from_secs(parsed.retry_after?)
+}
+
+fn parse_retry_after_from_str(raw: &str) -> Option<Duration> {
+    let seconds = raw.trim().parse::<f64>().ok()?;
+    parse_retry_after_from_secs(seconds)
+}
+
+fn parse_retry_after_from_secs(seconds: f64) -> Option<Duration> {
+    if !seconds.is_finite() || seconds <= 0.0 {
+        return None;
+    }
+
+    Some(Duration::from_secs_f64(seconds))
+}
+
+fn clamp_retry_after(delay: Duration) -> Duration {
+    delay.clamp(MIN_RATE_LIMIT_RETRY_AFTER, MAX_RATE_LIMIT_RETRY_AFTER)
+}
+
 #[cfg(test)]
 mod tests {
     use super::{DiscordHttpClient, HttpError};
+    use serde_json::Value;
+    use std::io::{Read, Write};
+    use std::net::TcpListener;
+    use std::thread;
     use url::Url;
 
     fn client(base: &str) -> DiscordHttpClient {
         DiscordHttpClient::new(Url::parse(base).expect("valid base URL"))
+    }
+
+    fn spawn_scripted_server(responses: Vec<String>) -> (String, thread::JoinHandle<()>) {
+        let listener = TcpListener::bind("127.0.0.1:0").expect("bind test server");
+        let addr = listener.local_addr().expect("test server addr");
+
+        let handle = thread::spawn(move || {
+            for response in responses {
+                let (mut stream, _) = listener.accept().expect("accept connection");
+                let mut request_buffer = [0_u8; 4096];
+                let _ = stream.read(&mut request_buffer);
+                stream
+                    .write_all(response.as_bytes())
+                    .expect("write scripted response");
+                stream.flush().expect("flush scripted response");
+            }
+        });
+
+        (format!("http://{addr}"), handle)
+    }
+
+    fn http_response(status: &str, headers: &[(&str, &str)], body: &str) -> String {
+        let mut response = format!("HTTP/1.1 {status}\r\n");
+        for (name, value) in headers {
+            response.push_str(&format!("{name}: {value}\r\n"));
+        }
+        response.push_str(&format!(
+            "Content-Length: {}\r\nConnection: close\r\n\r\n{}",
+            body.len(),
+            body
+        ));
+        response
     }
 
     #[test]
@@ -235,5 +402,61 @@ mod tests {
         let error = client.endpoint("/").expect_err("expected invalid path");
 
         assert!(matches!(error, HttpError::InvalidPath(_)));
+    }
+
+    #[tokio::test]
+    async fn retries_rate_limited_request_and_returns_success() {
+        let rate_limited = http_response(
+            "429 Too Many Requests",
+            &[
+                ("Content-Type", "application/json"),
+                ("Retry-After", "0.01"),
+            ],
+            r#"{"message":"rate limited","retry_after":0.01}"#,
+        );
+        let success = http_response(
+            "200 OK",
+            &[("Content-Type", "application/json")],
+            r#"{"ok":true}"#,
+        );
+
+        let (base_url, handle) = spawn_scripted_server(vec![rate_limited, success]);
+        let client = client(&base_url);
+
+        let response = client
+            .get_json::<Value>("users/@me", None)
+            .await
+            .expect("request should eventually succeed");
+
+        assert_eq!(response.get("ok").and_then(Value::as_bool), Some(true));
+        handle.join().expect("server thread should exit cleanly");
+    }
+
+    #[tokio::test]
+    async fn returns_status_error_when_rate_limit_retries_are_exhausted() {
+        let response = http_response(
+            "429 Too Many Requests",
+            &[
+                ("Content-Type", "application/json"),
+                ("Retry-After", "0.001"),
+            ],
+            r#"{"message":"rate limited","retry_after":0.001}"#,
+        );
+        let (base_url, handle) = spawn_scripted_server(vec![response; 6]);
+        let client = client(&base_url);
+
+        let error = client
+            .get_json::<Value>("users/@me", None)
+            .await
+            .expect_err("request should fail after retry budget");
+
+        match error {
+            HttpError::Status { status, .. } => {
+                assert_eq!(status, reqwest::StatusCode::TOO_MANY_REQUESTS)
+            }
+            other => panic!("unexpected error: {other}"),
+        }
+
+        handle.join().expect("server thread should exit cleanly");
     }
 }

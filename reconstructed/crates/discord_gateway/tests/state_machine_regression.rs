@@ -90,6 +90,32 @@ fn ready_dispatch_persists_session_and_marks_connected() {
             sequence: 7
         })
     );
+    assert!(sm.resume_url().is_none());
+}
+
+#[test]
+fn ready_dispatch_persists_resume_url() {
+    let mut sm = machine();
+    sm.on_connect();
+    sm.on_event(&GatewayEvent::Hello(GatewayHelloPayload {
+        heartbeat_interval: 30000,
+    }));
+
+    let dispatch = GatewayEvent::Dispatch {
+        event_type: Some("READY".to_owned()),
+        sequence: Some(7),
+        data: json!({
+            "session_id": "session-xyz",
+            "resume_gateway_url": "wss://gateway.discord.gg/?v=10&encoding=json"
+        }),
+    };
+
+    let actions = sm.on_event(&dispatch);
+    assert!(actions.is_empty());
+    assert_eq!(
+        sm.resume_url(),
+        Some("wss://gateway.discord.gg/?v=10&encoding=json")
+    );
 }
 
 #[test]
@@ -137,4 +163,22 @@ fn invalid_session_non_resumable_forces_identify_next_time() {
         actions[1],
         GatewayStateAction::SendIdentify(GatewayCommand { op: 2, .. })
     ));
+}
+
+#[test]
+fn restore_session_with_resume_url_sets_both_fields() {
+    let mut sm = machine();
+    sm.restore_session_with_resume_url(
+        GatewaySession {
+            session_id: "session-abc".to_owned(),
+            sequence: 42,
+        },
+        "wss://gateway.discord.gg/?v=10&encoding=json".to_owned(),
+    );
+
+    assert!(sm.can_resume());
+    assert_eq!(
+        sm.resume_url(),
+        Some("wss://gateway.discord.gg/?v=10&encoding=json")
+    );
 }

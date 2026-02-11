@@ -27,9 +27,26 @@
 
 ## Phase 3: Gateway Runtime
 
-- Add identify/resume/heartbeat state machine.
-- Add event dispatcher abstraction.
-- Add reconnect and backoff policies.
+- Done: add identify/resume/heartbeat state machine.
+- Done: keep transition logic pure and protocol-driven.
+- Done: add runtime/driver layer for websocket I/O and shutdown control.
+- Done: add reconnect policy with capped backoff and jitter.
+- Done: add integration tests for reconnect+resume and invalid-session fallback flows.
+
+### Phase 3 Deliverables Implemented
+
+- `discord_gateway::GatewayStateMachine`:
+  - Handles `HELLO`, `READY`, `RESUMED`, `HEARTBEAT_ACK`, `RECONNECT`, and `INVALID_SESSION`.
+  - Tracks sequence/session to choose `IDENTIFY` vs `RESUME`.
+  - Emits action enum (`GatewayStateAction`) for side-effect execution.
+- `discord_gateway::runtime`:
+  - Executes `GatewayStateAction` over a real websocket.
+  - Drives heartbeat interval and heartbeat timeout recovery.
+  - Supports graceful shutdown via `tokio::sync::watch::Receiver<bool>`.
+  - Emits runtime lifecycle events (`GatewayRuntimeEvent`) for hosting layers.
+- Tests:
+  - State machine regressions in `crates/discord_gateway/tests/state_machine_regression.rs`.
+  - Runtime reconnect/resume integration tests with a mock websocket server in `crates/discord_gateway/tests/runtime_reconnect_integration.rs`.
 
 ## Phase 4: Production Hardening
 

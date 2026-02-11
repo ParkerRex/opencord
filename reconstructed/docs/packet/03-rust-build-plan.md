@@ -50,6 +50,27 @@
 
 ## Phase 4: Production Hardening
 
-- Structured logging and tracing.
-- Retry/rate-limit policy layer.
-- Integration tests against recorded fixtures.
+- Done: add structured logging and tracing in HTTP and gateway runtime/state paths.
+- Done: add 429 retry/rate-limit policy layer in `discord_http`.
+- Done: persist gateway resume metadata in `discord_storage`.
+- Done: add `discord_client::SessionManager` to orchestrate token + bootstrap + session restore.
+- Done: add API-surface lock tests to freeze public interfaces.
+
+### Phase 4 Deliverables Implemented
+
+- `discord_storage`:
+  - `GatewaySessionRecord { session_id, seq, resume_url }`.
+  - helpers to load/save/clear persisted gateway session state.
+- `discord_http`:
+  - bounded retry loop for `429 Too Many Requests`.
+  - `Retry-After` / `x-ratelimit-reset-after` / body `retry_after` parsing.
+  - retry delay clamping + structured retry logs.
+- `discord_client`:
+  - `SessionManager` façade for bootstrap and persistence.
+  - `GatewayStartup` bundle containing bootstrap response, gateway client, and state machine.
+- `discord_gateway`:
+  - structured tracing for state transitions and runtime reconnect loop.
+  - READY dispatch parsing includes `resume_gateway_url`.
+- Tests:
+  - regression tests for retry handling and bootstrap fallback.
+  - compile-time `public_api_lock` tests per crate to detect breaking API changes.

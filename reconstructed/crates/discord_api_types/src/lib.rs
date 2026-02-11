@@ -211,7 +211,7 @@ pub struct AllowedMentions {
     pub replied_user: Option<bool>,
 }
 
-#[derive(Clone, Debug, Default, Serialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct CreateMessageRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub content: Option<String>,
@@ -219,6 +219,14 @@ pub struct CreateMessageRequest {
     pub tts: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub nonce: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub allowed_mentions: Option<AllowedMentions>,
+}
+
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+pub struct EditMessageRequest {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub content: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub allowed_mentions: Option<AllowedMentions>,
 }
@@ -231,8 +239,8 @@ pub struct ApiErrorBody {
 
 pub mod routes {
     use super::{
-        Channel, CreateMessageRequest, CurrentUserGuild, GatewayBotInfo, GetChannelMessagesQuery,
-        GetCurrentUserGuildsQuery, Message, Snowflake, User,
+        Channel, CreateMessageRequest, CurrentUserGuild, EditMessageRequest, GatewayBotInfo,
+        GetChannelMessagesQuery, GetCurrentUserGuildsQuery, Message, Snowflake, User,
     };
 
     pub trait Route {
@@ -349,6 +357,43 @@ pub mod routes {
             &self.body
         }
     }
+
+    #[derive(Clone, Debug)]
+    pub struct EditChannelMessage {
+        pub channel_id: Snowflake,
+        pub message_id: Snowflake,
+        pub body: EditMessageRequest,
+    }
+
+    impl Route for EditChannelMessage {
+        type Response = Message;
+
+        fn path(&self) -> String {
+            format!("channels/{}/messages/{}", self.channel_id, self.message_id)
+        }
+    }
+
+    impl JsonBodyRoute for EditChannelMessage {
+        type Body = EditMessageRequest;
+
+        fn body(&self) -> &Self::Body {
+            &self.body
+        }
+    }
+
+    #[derive(Clone, Debug)]
+    pub struct DeleteChannelMessage {
+        pub channel_id: Snowflake,
+        pub message_id: Snowflake,
+    }
+
+    impl Route for DeleteChannelMessage {
+        type Response = ();
+
+        fn path(&self) -> String {
+            format!("channels/{}/messages/{}", self.channel_id, self.message_id)
+        }
+    }
 }
 
 #[derive(Debug, Error)]
@@ -360,12 +405,13 @@ pub enum ApiTypeError {
 #[cfg(test)]
 mod tests {
     use super::routes::{
-        CreateChannelMessage, GetChannelMessages, GetCurrentUser, GetCurrentUserGuilds,
-        GetGatewayBot, GetGuildChannels, JsonBodyRoute, QueryRoute, Route,
+        CreateChannelMessage, DeleteChannelMessage, EditChannelMessage, GetChannelMessages,
+        GetCurrentUser, GetCurrentUserGuilds, GetGatewayBot, GetGuildChannels, JsonBodyRoute,
+        QueryRoute, Route,
     };
     use super::{
-        ChannelType, CreateMessageRequest, GetChannelMessagesQuery, GetCurrentUserGuildsQuery,
-        Snowflake,
+        ChannelType, CreateMessageRequest, EditMessageRequest, GetChannelMessagesQuery,
+        GetCurrentUserGuildsQuery, Snowflake,
     };
 
     #[test]
@@ -411,5 +457,19 @@ mod tests {
         };
         assert_eq!(create_channel_message.path(), "channels/789/messages");
         let _: &CreateMessageRequest = create_channel_message.body();
+
+        let edit_channel_message = EditChannelMessage {
+            channel_id: Snowflake::from("789"),
+            message_id: Snowflake::from("999"),
+            body: EditMessageRequest::default(),
+        };
+        assert_eq!(edit_channel_message.path(), "channels/789/messages/999");
+        let _: &EditMessageRequest = edit_channel_message.body();
+
+        let delete_channel_message = DeleteChannelMessage {
+            channel_id: Snowflake::from("789"),
+            message_id: Snowflake::from("999"),
+        };
+        assert_eq!(delete_channel_message.path(), "channels/789/messages/999");
     }
 }

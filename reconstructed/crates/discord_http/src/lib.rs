@@ -1,10 +1,11 @@
 use discord_api_types::routes::{
-    CreateChannelMessage, GetChannelMessages, GetCurrentUser, GetCurrentUserGuilds, GetGatewayBot,
-    GetGuildChannels, JsonBodyRoute, QueryRoute, Route,
+    CreateChannelMessage, DeleteChannelMessage, EditChannelMessage, GetChannelMessages,
+    GetCurrentUser, GetCurrentUserGuilds, GetGatewayBot, GetGuildChannels, JsonBodyRoute,
+    QueryRoute, Route,
 };
 use discord_api_types::{
-    Channel, CreateMessageRequest, CurrentUserGuild, GatewayBotInfo, GetChannelMessagesQuery,
-    GetCurrentUserGuildsQuery, Message, Snowflake, User,
+    Channel, CreateMessageRequest, CurrentUserGuild, EditMessageRequest, GatewayBotInfo,
+    GetChannelMessagesQuery, GetCurrentUserGuildsQuery, Message, Snowflake, User,
 };
 use reqwest::{
     StatusCode,
@@ -129,6 +130,47 @@ impl DiscordHttpClient {
         decode_response(response).await
     }
 
+    pub async fn patch_json<B, T>(
+        &self,
+        path: &str,
+        payload: &B,
+        bearer_token: Option<&str>,
+    ) -> Result<T, HttpError>
+    where
+        B: Serialize + ?Sized,
+        T: DeserializeOwned,
+    {
+        let response = self
+            .send_with_rate_limit_retry("PATCH", path, || {
+                let mut req = self.client.patch(self.endpoint(path)?).json(payload);
+                if let Some(token) = bearer_token {
+                    req = req.bearer_auth(token);
+                }
+                Ok(req)
+            })
+            .await?;
+
+        decode_response(response).await
+    }
+
+    pub async fn delete_empty(
+        &self,
+        path: &str,
+        bearer_token: Option<&str>,
+    ) -> Result<(), HttpError> {
+        let response = self
+            .send_with_rate_limit_retry("DELETE", path, || {
+                let mut req = self.client.delete(self.endpoint(path)?);
+                if let Some(token) = bearer_token {
+                    req = req.bearer_auth(token);
+                }
+                Ok(req)
+            })
+            .await?;
+
+        decode_empty_response(response).await
+    }
+
     pub async fn get_route<R>(
         &self,
         route: &R,
@@ -167,6 +209,31 @@ impl DiscordHttpClient {
     {
         self.post_json(&route.path(), route.body(), bearer_token)
             .await
+    }
+
+    pub async fn patch_route<R>(
+        &self,
+        route: &R,
+        bearer_token: Option<&str>,
+    ) -> Result<R::Response, HttpError>
+    where
+        R: JsonBodyRoute,
+        R::Body: Serialize,
+        R::Response: DeserializeOwned,
+    {
+        self.patch_json(&route.path(), route.body(), bearer_token)
+            .await
+    }
+
+    pub async fn delete_route<R>(
+        &self,
+        route: &R,
+        bearer_token: Option<&str>,
+    ) -> Result<(), HttpError>
+    where
+        R: Route<Response = ()>,
+    {
+        self.delete_empty(&route.path(), bearer_token).await
     }
 
     pub async fn get_current_user(&self, bearer_token: &str) -> Result<User, HttpError> {
@@ -221,6 +288,34 @@ impl DiscordHttpClient {
             body: payload,
         };
         self.post_route(&route, Some(bearer_token)).await
+    }
+
+    pub async fn edit_message(
+        &self,
+        channel_id: impl Into<Snowflake>,
+        message_id: impl Into<Snowflake>,
+        payload: EditMessageRequest,
+        bearer_token: &str,
+    ) -> Result<Message, HttpError> {
+        let route = EditChannelMessage {
+            channel_id: channel_id.into(),
+            message_id: message_id.into(),
+            body: payload,
+        };
+        self.patch_route(&route, Some(bearer_token)).await
+    }
+
+    pub async fn delete_message(
+        &self,
+        channel_id: impl Into<Snowflake>,
+        message_id: impl Into<Snowflake>,
+        bearer_token: &str,
+    ) -> Result<(), HttpError> {
+        let route = DeleteChannelMessage {
+            channel_id: channel_id.into(),
+            message_id: message_id.into(),
+        };
+        self.delete_route(&route, Some(bearer_token)).await
     }
 
     async fn send_with_rate_limit_retry<F>(
@@ -289,6 +384,19 @@ where
     let status = response.status();
     if status.is_success() {
         return Ok(response.json::<T>().await?);
+    }
+
+    let body = response
+        .text()
+        .await
+        .unwrap_or_else(|_| String::from("<no body>"));
+    Err(HttpError::Status { status, body })
+}
+
+async fn decode_empty_response(response: reqwest::Response) -> Result<(), HttpError> {
+    let status = response.status();
+    if status.is_success() {
+        return Ok(());
     }
 
     let body = response

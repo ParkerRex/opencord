@@ -1,4 +1,7 @@
-use discord_api_types::{GatewayBotInfo, User};
+use discord_api_types::{
+    Channel, CreateMessageRequest, CurrentUserGuild, EditMessageRequest, GatewayBotInfo,
+    GetChannelMessagesQuery, GetCurrentUserGuildsQuery, Message, Snowflake, User,
+};
 use discord_auth::{AuthError, TokenProvider};
 use discord_gateway::{
     GatewayClient, GatewaySession, GatewayStateMachine, GatewayStateMachineConfig,
@@ -113,6 +116,71 @@ where
         let gateway_bot = self.gateway_bot().await?;
         let gateway_url = normalize_gateway_url(Url::parse(&gateway_bot.url)?);
         Ok(GatewayClient::new(gateway_url))
+    }
+
+    pub async fn list_guilds(
+        &self,
+        query: GetCurrentUserGuildsQuery,
+    ) -> Result<Vec<CurrentUserGuild>, ClientError> {
+        let token = self.token().await?;
+        Ok(self.http.get_current_user_guilds(&token, query).await?)
+    }
+
+    pub async fn list_channels(
+        &self,
+        guild_id: impl Into<Snowflake>,
+    ) -> Result<Vec<Channel>, ClientError> {
+        let token = self.token().await?;
+        Ok(self.http.get_guild_channels(guild_id, &token).await?)
+    }
+
+    pub async fn list_messages(
+        &self,
+        channel_id: impl Into<Snowflake>,
+        query: GetChannelMessagesQuery,
+    ) -> Result<Vec<Message>, ClientError> {
+        let token = self.token().await?;
+        Ok(self
+            .http
+            .get_channel_messages(channel_id, query, &token)
+            .await?)
+    }
+
+    pub async fn create_message(
+        &self,
+        channel_id: impl Into<Snowflake>,
+        payload: CreateMessageRequest,
+    ) -> Result<Message, ClientError> {
+        let token = self.token().await?;
+        Ok(self
+            .http
+            .create_message(channel_id, payload, &token)
+            .await?)
+    }
+
+    pub async fn edit_message(
+        &self,
+        channel_id: impl Into<Snowflake>,
+        message_id: impl Into<Snowflake>,
+        payload: EditMessageRequest,
+    ) -> Result<Message, ClientError> {
+        let token = self.token().await?;
+        Ok(self
+            .http
+            .edit_message(channel_id, message_id, payload, &token)
+            .await?)
+    }
+
+    pub async fn delete_message(
+        &self,
+        channel_id: impl Into<Snowflake>,
+        message_id: impl Into<Snowflake>,
+    ) -> Result<(), ClientError> {
+        let token = self.token().await?;
+        self.http
+            .delete_message(channel_id, message_id, &token)
+            .await?;
+        Ok(())
     }
 
     pub async fn cache_set_json<T: Serialize>(

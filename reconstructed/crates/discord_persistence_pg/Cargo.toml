@@ -1,0 +1,16 @@
+[package]
+name = "discord_persistence_pg"
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+
+[dependencies]
+async-trait.workspace = true
+discord_storage = { path = "../discord_storage" }
+serde_json.workspace = true
+sqlx.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+
+[dev-dependencies]
+discord_storage = { path = "../discord_storage" }

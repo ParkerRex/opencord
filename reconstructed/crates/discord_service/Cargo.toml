@@ -1,0 +1,32 @@
+[package]
+name = "discord_service"
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+async-trait.workspace = true
+axum.workspace = true
+discord_api_types = { path = "../discord_api_types" }
+discord_auth = { path = "../discord_auth" }
+discord_client = { path = "../discord_client" }
+discord_gateway = { path = "../discord_gateway" }
+discord_http = { path = "../discord_http" }
+discord_persistence_pg = { path = "../discord_persistence_pg" }
+discord_storage = { path = "../discord_storage" }
+discord_voice = { path = "../discord_voice" }
+futures-util.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tower-http = { version = "0.6", features = ["trace"] }
+url.workspace = true
+uuid.workspace = true
+
+[dev-dependencies]
+tower.workspace = true

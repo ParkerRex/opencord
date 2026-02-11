@@ -72,13 +72,29 @@ impl GatewayClient {
         &self,
         state_machine_config: GatewayStateMachineConfig,
         options: GatewayRuntimeOptions,
-        mut shutdown: watch::Receiver<bool>,
-        mut on_runtime_event: H,
+        shutdown: watch::Receiver<bool>,
+        on_runtime_event: H,
     ) -> Result<(), GatewayError>
     where
         H: FnMut(GatewayRuntimeEvent) + Send,
     {
-        let mut state_machine = GatewayStateMachine::new(state_machine_config);
+        let state_machine = GatewayStateMachine::new(state_machine_config);
+        let _ = self
+            .run_with_state_machine_shutdown(state_machine, options, shutdown, on_runtime_event)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn run_with_state_machine_shutdown<H>(
+        &self,
+        mut state_machine: GatewayStateMachine,
+        options: GatewayRuntimeOptions,
+        mut shutdown: watch::Receiver<bool>,
+        mut on_runtime_event: H,
+    ) -> Result<GatewayStateMachine, GatewayError>
+    where
+        H: FnMut(GatewayRuntimeEvent) + Send,
+    {
         let mut reconnect_attempt = 0u32;
         debug!(gateway_url = %self.gateway_url(), "starting gateway runtime");
 
@@ -86,7 +102,7 @@ impl GatewayClient {
             if should_shutdown(&shutdown) {
                 debug!("gateway runtime received shutdown before connect");
                 on_runtime_event(GatewayRuntimeEvent::Shutdown);
-                return Ok(());
+                return Ok(state_machine);
             }
 
             state_machine.on_connect();
@@ -112,7 +128,7 @@ impl GatewayClient {
 
                     if wait_for_reconnect_delay(delay, &mut shutdown).await {
                         on_runtime_event(GatewayRuntimeEvent::Shutdown);
-                        return Ok(());
+                        return Ok(state_machine);
                     }
 
                     continue;
@@ -144,7 +160,7 @@ impl GatewayClient {
                 if wait_for_reconnect_delay(delay, &mut shutdown).await {
                     debug!("gateway runtime shutdown during reconnect delay");
                     on_runtime_event(GatewayRuntimeEvent::Shutdown);
-                    return Ok(());
+                    return Ok(state_machine);
                 }
 
                 continue;
@@ -152,7 +168,7 @@ impl GatewayClient {
 
             debug!("gateway runtime stopping without reconnect");
             on_runtime_event(GatewayRuntimeEvent::Shutdown);
-            return Ok(());
+            return Ok(state_machine);
         }
     }
 }

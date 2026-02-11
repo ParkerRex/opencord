@@ -7,6 +7,9 @@ members = [
   "crates/discord_storage",
   "crates/discord_client",
   "crates/discord_ffi",
+  "crates/discord_persistence_pg",
+  "crates/discord_service",
+  "crates/discord_voice",
 ]
 resolver = "2"
 
@@ -18,12 +21,16 @@ version = "0.1.0"
 [workspace.dependencies]
 anyhow = "1.0"
 async-trait = "0.1"
+axum = { version = "0.8", features = ["ws"] }
 futures-util = "0.3"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+sqlx = { version = "0.8", default-features = false, features = ["postgres", "runtime-tokio-rustls"] }
 thiserror = "1.0"
-tokio = { version = "1.43", features = ["macros", "rt-multi-thread", "sync", "time"] }
+tokio = { version = "1.43", features = ["macros", "net", "rt-multi-thread", "sync", "time"] }
 tokio-tungstenite = { version = "0.24", default-features = false, features = ["connect", "rustls-tls-webpki-roots"] }
+tower = "0.5"
 tracing = "0.1"
 url = "2.5"
+uuid = { version = "1.12", features = ["v4"] }

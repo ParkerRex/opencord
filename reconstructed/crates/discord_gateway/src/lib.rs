@@ -1,9 +1,13 @@
 use futures_util::StreamExt;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::time::Duration;
 use thiserror::Error;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 use url::Url;
+
+mod runtime;
+pub use runtime::{GatewayRuntimeEvent, GatewayRuntimeOptions};
 
 #[derive(Debug, Error)]
 pub enum GatewayError {
@@ -49,7 +53,7 @@ impl GatewayClient {
     }
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct GatewayIdentifyProperties {
     pub os: String,
     pub browser: String,
@@ -66,14 +70,14 @@ impl Default for GatewayIdentifyProperties {
     }
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct GatewayIdentifyPayload {
     pub token: String,
     pub intents: u64,
     pub properties: GatewayIdentifyProperties,
 }
 
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 pub struct GatewayCommand<T> {
     pub op: u8,
     pub d: T,
@@ -83,6 +87,250 @@ pub fn identify_command(payload: GatewayIdentifyPayload) -> GatewayCommand<Gatew
     GatewayCommand { op: 2, d: payload }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct GatewayResumePayload {
+    pub token: String,
+    pub session_id: String,
+    pub seq: u64,
+}
+
+pub fn resume_command(payload: GatewayResumePayload) -> GatewayCommand<GatewayResumePayload> {
+    GatewayCommand { op: 6, d: payload }
+}
+
+pub fn heartbeat_command(last_sequence: Option<u64>) -> GatewayCommand<Option<u64>> {
+    GatewayCommand {
+        op: 1,
+        d: last_sequence,
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct GatewayHelloPayload {
+    pub heartbeat_interval: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GatewaySession {
+    pub session_id: String,
+    pub sequence: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GatewayStateMachineConfig {
+    pub token: String,
+    pub intents: u64,
+    pub identify_properties: GatewayIdentifyProperties,
+}
+
+impl GatewayStateMachineConfig {
+    pub fn new(token: String, intents: u64) -> Self {
+        Self {
+            token,
+            intents,
+            identify_properties: GatewayIdentifyProperties::default(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GatewayConnectionState {
+    Disconnected,
+    AwaitingHello,
+    Handshaking,
+    Connected,
+    ReconnectRequested,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum GatewayStateAction {
+    ConfigureHeartbeat { interval: Duration },
+    SendIdentify(GatewayCommand<GatewayIdentifyPayload>),
+    SendResume(GatewayCommand<GatewayResumePayload>),
+    SendHeartbeat(GatewayCommand<Option<u64>>),
+    Reconnect { resumable: bool },
+}
+
+#[derive(Debug, Clone)]
+pub struct GatewayStateMachine {
+    config: GatewayStateMachineConfig,
+    state: GatewayConnectionState,
+    heartbeat_interval: Option<Duration>,
+    heartbeat_ack_pending: bool,
+    session_id: Option<String>,
+    last_sequence: Option<u64>,
+}
+
+impl GatewayStateMachine {
+    pub fn new(config: GatewayStateMachineConfig) -> Self {
+        Self {
+            config,
+            state: GatewayConnectionState::Disconnected,
+            heartbeat_interval: None,
+            heartbeat_ack_pending: false,
+            session_id: None,
+            last_sequence: None,
+        }
+    }
+
+    pub fn state(&self) -> GatewayConnectionState {
+        self.state
+    }
+
+    pub fn heartbeat_interval(&self) -> Option<Duration> {
+        self.heartbeat_interval
+    }
+
+    pub fn session(&self) -> Option<GatewaySession> {
+        match (self.session_id.as_ref(), self.last_sequence) {
+            (Some(session_id), Some(sequence)) => Some(GatewaySession {
+                session_id: session_id.clone(),
+                sequence,
+            }),
+            _ => None,
+        }
+    }
+
+    pub fn restore_session(&mut self, session: GatewaySession) {
+        self.session_id = Some(session.session_id);
+        self.last_sequence = Some(session.sequence);
+    }
+
+    pub fn clear_session(&mut self) {
+        self.session_id = None;
+        self.last_sequence = None;
+    }
+
+    pub fn on_connect(&mut self) {
+        self.state = GatewayConnectionState::AwaitingHello;
+        self.heartbeat_interval = None;
+        self.heartbeat_ack_pending = false;
+    }
+
+    pub fn on_disconnect(&mut self) {
+        self.state = GatewayConnectionState::Disconnected;
+        self.heartbeat_interval = None;
+        self.heartbeat_ack_pending = false;
+    }
+
+    pub fn can_resume(&self) -> bool {
+        self.session_id.is_some() && self.last_sequence.is_some()
+    }
+
+    pub fn on_heartbeat_tick(&mut self) -> GatewayStateAction {
+        if self.heartbeat_ack_pending {
+            self.state = GatewayConnectionState::ReconnectRequested;
+            return GatewayStateAction::Reconnect {
+                resumable: self.can_resume(),
+            };
+        }
+
+        self.heartbeat_ack_pending = true;
+        GatewayStateAction::SendHeartbeat(heartbeat_command(self.last_sequence))
+    }
+
+    pub fn on_event(&mut self, event: &GatewayEvent) -> Vec<GatewayStateAction> {
+        if let GatewayEvent::Dispatch { sequence, .. } = event {
+            if let Some(seq) = sequence {
+                self.last_sequence = Some(*seq);
+            }
+        }
+
+        match event {
+            GatewayEvent::Hello(hello) => self.on_hello(hello),
+            GatewayEvent::HeartbeatRequest => vec![self.send_heartbeat()],
+            GatewayEvent::HeartbeatAck => {
+                self.heartbeat_ack_pending = false;
+                Vec::new()
+            }
+            GatewayEvent::Dispatch {
+                event_type, data, ..
+            } => {
+                self.handle_dispatch(event_type.as_deref(), data);
+                Vec::new()
+            }
+            GatewayEvent::Reconnect => {
+                self.state = GatewayConnectionState::ReconnectRequested;
+                vec![GatewayStateAction::Reconnect {
+                    resumable: self.can_resume(),
+                }]
+            }
+            GatewayEvent::InvalidSession { resumable } => {
+                self.state = GatewayConnectionState::ReconnectRequested;
+                self.heartbeat_ack_pending = false;
+
+                if !resumable {
+                    self.clear_session();
+                }
+
+                vec![GatewayStateAction::Reconnect {
+                    resumable: *resumable && self.can_resume(),
+                }]
+            }
+            GatewayEvent::NonTextFrame | GatewayEvent::Unknown(_) => Vec::new(),
+        }
+    }
+
+    fn on_hello(&mut self, hello: &GatewayHelloPayload) -> Vec<GatewayStateAction> {
+        self.state = GatewayConnectionState::Handshaking;
+        self.heartbeat_ack_pending = false;
+
+        let interval = Duration::from_millis(hello.heartbeat_interval);
+        self.heartbeat_interval = Some(interval);
+
+        let mut actions = vec![GatewayStateAction::ConfigureHeartbeat { interval }];
+
+        if let Some(command) = self.resume_gateway_command() {
+            actions.push(GatewayStateAction::SendResume(command));
+        } else {
+            actions.push(GatewayStateAction::SendIdentify(
+                self.identify_gateway_command(),
+            ));
+        }
+
+        actions
+    }
+
+    fn identify_gateway_command(&self) -> GatewayCommand<GatewayIdentifyPayload> {
+        identify_command(GatewayIdentifyPayload {
+            token: self.config.token.clone(),
+            intents: self.config.intents,
+            properties: self.config.identify_properties.clone(),
+        })
+    }
+
+    fn resume_gateway_command(&self) -> Option<GatewayCommand<GatewayResumePayload>> {
+        let session_id = self.session_id.clone()?;
+        let seq = self.last_sequence?;
+
+        Some(resume_command(GatewayResumePayload {
+            token: self.config.token.clone(),
+            session_id,
+            seq,
+        }))
+    }
+
+    fn send_heartbeat(&mut self) -> GatewayStateAction {
+        self.heartbeat_ack_pending = true;
+        GatewayStateAction::SendHeartbeat(heartbeat_command(self.last_sequence))
+    }
+
+    fn handle_dispatch(&mut self, event_type: Option<&str>, data: &Value) {
+        match event_type {
+            Some("READY") => {
+                if let Some(session_id) = data.get("session_id").and_then(Value::as_str) {
+                    self.session_id = Some(session_id.to_owned());
+                }
+                self.state = GatewayConnectionState::Connected;
+            }
+            Some("RESUMED") => {
+                self.state = GatewayConnectionState::Connected;
+            }
+            _ => {}
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum GatewayEvent {
     Dispatch {
@@ -90,10 +338,13 @@ pub enum GatewayEvent {
         sequence: Option<u64>,
         data: Value,
     },
-    Hello(Value),
+    HeartbeatRequest,
+    Hello(GatewayHelloPayload),
     HeartbeatAck,
     Reconnect,
-    InvalidSession,
+    InvalidSession {
+        resumable: bool,
+    },
     NonTextFrame,
     Unknown(Value),
 }
@@ -105,6 +356,7 @@ pub fn parse_event(payload: &str) -> Result<GatewayEvent, GatewayError> {
     let data = body.get("d").cloned().unwrap_or(Value::Null);
 
     let event = match op {
+        1 => GatewayEvent::HeartbeatRequest,
         0 => GatewayEvent::Dispatch {
             event_type: body
                 .get("t")
@@ -113,10 +365,12 @@ pub fn parse_event(payload: &str) -> Result<GatewayEvent, GatewayError> {
             sequence: body.get("s").and_then(|v| v.as_u64()),
             data,
         },
-        10 => GatewayEvent::Hello(data),
+        10 => GatewayEvent::Hello(serde_json::from_value(data)?),
         11 => GatewayEvent::HeartbeatAck,
         7 => GatewayEvent::Reconnect,
-        9 => GatewayEvent::InvalidSession,
+        9 => GatewayEvent::InvalidSession {
+            resumable: data.as_bool().unwrap_or(false),
+        },
         _ => GatewayEvent::Unknown(body),
     };
 

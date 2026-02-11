@@ -1,0 +1,15 @@
+[
+  {
+    "id": "111",
+    "channel_id": "123",
+    "author": {
+      "id": "80351110224678912",
+      "username": "Nelly",
+      "global_name": "Nelly",
+      "avatar": null,
+      "bot": false
+    },
+    "content": "hello from fixture",
+    "timestamp": "2024-07-01T12:34:56.789000+00:00"
+  }
+]

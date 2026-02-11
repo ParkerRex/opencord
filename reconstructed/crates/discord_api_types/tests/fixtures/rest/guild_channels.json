@@ -1,0 +1,16 @@
+[
+  {
+    "id": "123",
+    "guild_id": "290926798626357250",
+    "name": "general",
+    "topic": "welcome",
+    "type": 0
+  },
+  {
+    "id": "124",
+    "guild_id": "290926798626357250",
+    "name": "voice",
+    "topic": null,
+    "type": 2
+  }
+]

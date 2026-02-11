@@ -1,0 +1,349 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		28D78CD55420D881D8F9BEE2 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94E7EFC6237C9121BF2CE959 /* SceneDelegate.swift */; };
+		2C127B487F7C697DC1BE3E3B /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = D88D54586C623D0FA4A6C630 /* AppDelegate.swift */; };
+		3D0D54DD0BA2707528FA471F /* OpenCordUIKitShell in Frameworks */ = {isa = PBXBuildFile; productRef = 04A95872CDBF770146101996 /* OpenCordUIKitShell */; };
+		3E98A356AD492E3217112AA1 /* OpenCordClientCore in Frameworks */ = {isa = PBXBuildFile; productRef = 435AAFEF764525D09387533E /* OpenCordClientCore */; };
+		D7AFD35C582914BB052B62A1 /* OpenCordNetworking in Frameworks */ = {isa = PBXBuildFile; productRef = 89A7E60259E70C43E187C533 /* OpenCordNetworking */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		797CDD2F46C65E64B183CEB3 /* OpenCordUIKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = OpenCordUIKit; path = ../OpenCordUIKit; sourceTree = SOURCE_ROOT; };
+		7D29DB5CB6F60CD19DA0CED3 /* OpenCordUIKitApp.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = OpenCordUIKitApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		94E7EFC6237C9121BF2CE959 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
+		D88D54586C623D0FA4A6C630 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		717ED5A04869D909FC509219 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3E98A356AD492E3217112AA1 /* OpenCordClientCore in Frameworks */,
+				D7AFD35C582914BB052B62A1 /* OpenCordNetworking in Frameworks */,
+				3D0D54DD0BA2707528FA471F /* OpenCordUIKitShell in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		04A071D2A7A922C6A0C0D43B = {
+			isa = PBXGroup;
+			children = (
+				C0422E2BE4F97C46D208E3BB /* OpenCordUIKitApp */,
+				28CC6E1F79AC3BF875C2B0B3 /* Packages */,
+				A686290302205F2491F8F0EC /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		28CC6E1F79AC3BF875C2B0B3 /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				797CDD2F46C65E64B183CEB3 /* OpenCordUIKit */,
+			);
+			name = Packages;
+			sourceTree = "<group>";
+		};
+		A686290302205F2491F8F0EC /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				7D29DB5CB6F60CD19DA0CED3 /* OpenCordUIKitApp.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		C0422E2BE4F97C46D208E3BB /* OpenCordUIKitApp */ = {
+			isa = PBXGroup;
+			children = (
+				D88D54586C623D0FA4A6C630 /* AppDelegate.swift */,
+				94E7EFC6237C9121BF2CE959 /* SceneDelegate.swift */,
+			);
+			path = OpenCordUIKitApp;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		513C59DFAA6B080DF5A04145 /* OpenCordUIKitApp */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B1E7254F1431C418C352C912 /* Build configuration list for PBXNativeTarget "OpenCordUIKitApp" */;
+			buildPhases = (
+				C73B78DC412A3B816299AC8F /* Sources */,
+				717ED5A04869D909FC509219 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = OpenCordUIKitApp;
+			packageProductDependencies = (
+				435AAFEF764525D09387533E /* OpenCordClientCore */,
+				89A7E60259E70C43E187C533 /* OpenCordNetworking */,
+				04A95872CDBF770146101996 /* OpenCordUIKitShell */,
+			);
+			productName = OpenCordUIKitApp;
+			productReference = 7D29DB5CB6F60CD19DA0CED3 /* OpenCordUIKitApp.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		8DC1B4AD0CEB02E3501AE8BC /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+			};
+			buildConfigurationList = A5BB0F137B7AA7A36C63DB42 /* Build configuration list for PBXProject "OpenCordUIKitApp" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 04A071D2A7A922C6A0C0D43B;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				D26ADF539536B6DBDCD6B6DF /* XCLocalSwiftPackageReference "../OpenCordUIKit" */,
+			);
+			preferredProjectObjectVersion = 77;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				513C59DFAA6B080DF5A04145 /* OpenCordUIKitApp */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		C73B78DC412A3B816299AC8F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2C127B487F7C697DC1BE3E3B /* AppDelegate.swift in Sources */,
+				28D78CD55420D881D8F9BEE2 /* SceneDelegate.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		10A9BAA2E230107020248774 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = OpenCord;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.opencord.uikit;
+				PRODUCT_NAME = OpenCordUIKitApp;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.1;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		297FAE3A603CD3AFA1593B47 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		A9C122DCBFB0F0323BEEA57A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = OpenCord;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.opencord.uikit;
+				PRODUCT_NAME = OpenCordUIKitApp;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.1;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		E470F810BC59C13D75FB43F9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A5BB0F137B7AA7A36C63DB42 /* Build configuration list for PBXProject "OpenCordUIKitApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E470F810BC59C13D75FB43F9 /* Debug */,
+				297FAE3A603CD3AFA1593B47 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		B1E7254F1431C418C352C912 /* Build configuration list for PBXNativeTarget "OpenCordUIKitApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A9C122DCBFB0F0323BEEA57A /* Debug */,
+				10A9BAA2E230107020248774 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		D26ADF539536B6DBDCD6B6DF /* XCLocalSwiftPackageReference "../OpenCordUIKit" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../OpenCordUIKit;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		04A95872CDBF770146101996 /* OpenCordUIKitShell */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = OpenCordUIKitShell;
+		};
+		435AAFEF764525D09387533E /* OpenCordClientCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = OpenCordClientCore;
+		};
+		89A7E60259E70C43E187C533 /* OpenCordNetworking */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = OpenCordNetworking;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 8DC1B4AD0CEB02E3501AE8BC /* Project object */;
+}

@@ -1,0 +1,40 @@
+name: Reconstructed Rust CI
+
+on:
+  push:
+    paths:
+      - "reconstructed/**"
+      - ".github/workflows/reconstructed-rust-ci.yml"
+  pull_request:
+    paths:
+      - "reconstructed/**"
+      - ".github/workflows/reconstructed-rust-ci.yml"
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: reconstructed
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            reconstructed
+
+      - name: Format check
+        run: cargo fmt --all -- --check
+
+      - name: Build check
+        run: cargo check --workspace
+
+      - name: Test
+        run: cargo test --workspace

@@ -1,0 +1,8 @@
+.DS_Store
+
+# Rust/Cargo build output
+**/target/
+
+# macOS
+.AppleDouble
+.LSOverride

@@ -1,4 +1,11 @@
-use discord_api_types::{GatewayBotInfo, User};
+use discord_api_types::routes::{
+    CreateChannelMessage, GetChannelMessages, GetCurrentUser, GetCurrentUserGuilds, GetGatewayBot,
+    GetGuildChannels, JsonBodyRoute, QueryRoute, Route,
+};
+use discord_api_types::{
+    Channel, CreateMessageRequest, CurrentUserGuild, GatewayBotInfo, GetChannelMessagesQuery,
+    GetCurrentUserGuildsQuery, Message, Snowflake, User,
+};
 use reqwest::StatusCode;
 use serde::{Serialize, de::DeserializeOwned};
 use thiserror::Error;
@@ -59,6 +66,23 @@ impl DiscordHttpClient {
         decode_response(req.send().await?).await
     }
 
+    pub async fn get_json_with_query<Q, T>(
+        &self,
+        path: &str,
+        query: &Q,
+        bearer_token: Option<&str>,
+    ) -> Result<T, HttpError>
+    where
+        Q: Serialize + ?Sized,
+        T: DeserializeOwned,
+    {
+        let mut req = self.client.get(self.endpoint(path)?).query(query);
+        if let Some(token) = bearer_token {
+            req = req.bearer_auth(token);
+        }
+        decode_response(req.send().await?).await
+    }
+
     pub async fn post_json<B, T>(
         &self,
         path: &str,
@@ -76,12 +100,98 @@ impl DiscordHttpClient {
         decode_response(req.send().await?).await
     }
 
+    pub async fn get_route<R>(
+        &self,
+        route: &R,
+        bearer_token: Option<&str>,
+    ) -> Result<R::Response, HttpError>
+    where
+        R: Route,
+        R::Response: DeserializeOwned,
+    {
+        self.get_json(&route.path(), bearer_token).await
+    }
+
+    pub async fn get_query_route<R>(
+        &self,
+        route: &R,
+        bearer_token: Option<&str>,
+    ) -> Result<R::Response, HttpError>
+    where
+        R: QueryRoute,
+        R::Query: Serialize,
+        R::Response: DeserializeOwned,
+    {
+        self.get_json_with_query(&route.path(), route.query(), bearer_token)
+            .await
+    }
+
+    pub async fn post_route<R>(
+        &self,
+        route: &R,
+        bearer_token: Option<&str>,
+    ) -> Result<R::Response, HttpError>
+    where
+        R: JsonBodyRoute,
+        R::Body: Serialize,
+        R::Response: DeserializeOwned,
+    {
+        self.post_json(&route.path(), route.body(), bearer_token)
+            .await
+    }
+
     pub async fn get_current_user(&self, bearer_token: &str) -> Result<User, HttpError> {
-        self.get_json("users/@me", Some(bearer_token)).await
+        self.get_route(&GetCurrentUser, Some(bearer_token)).await
     }
 
     pub async fn get_gateway_bot(&self, bearer_token: &str) -> Result<GatewayBotInfo, HttpError> {
-        self.get_json("gateway/bot", Some(bearer_token)).await
+        self.get_route(&GetGatewayBot, Some(bearer_token)).await
+    }
+
+    pub async fn get_current_user_guilds(
+        &self,
+        bearer_token: &str,
+        query: GetCurrentUserGuildsQuery,
+    ) -> Result<Vec<CurrentUserGuild>, HttpError> {
+        let route = GetCurrentUserGuilds { query };
+        self.get_query_route(&route, Some(bearer_token)).await
+    }
+
+    pub async fn get_guild_channels(
+        &self,
+        guild_id: impl Into<Snowflake>,
+        bearer_token: &str,
+    ) -> Result<Vec<Channel>, HttpError> {
+        let route = GetGuildChannels {
+            guild_id: guild_id.into(),
+        };
+        self.get_route(&route, Some(bearer_token)).await
+    }
+
+    pub async fn get_channel_messages(
+        &self,
+        channel_id: impl Into<Snowflake>,
+        query: GetChannelMessagesQuery,
+        bearer_token: &str,
+    ) -> Result<Vec<Message>, HttpError> {
+        let route = GetChannelMessages {
+            channel_id: channel_id.into(),
+            query,
+        };
+        self.get_query_route(&route, Some(bearer_token)).await
+    }
+
+    pub async fn create_message(
+        &self,
+        channel_id: impl Into<Snowflake>,
+        payload: CreateMessageRequest,
+        bearer_token: &str,
+    ) -> Result<Message, HttpError> {
+        let route = CreateChannelMessage {
+            channel_id: channel_id.into(),
+            body: payload,
+        };
+        self.post_route(&route, Some(bearer_token)).await
     }
 }
 

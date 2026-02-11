@@ -35,17 +35,21 @@ fn json_response(status: &str, body: &str) -> String {
     )
 }
 
-async fn spawn_gateway_bot_server(gateway_url: String) -> io::Result<(String, tokio::task::JoinHandle<()>)> {
+async fn spawn_gateway_bot_server(
+    gateway_url: String,
+) -> io::Result<(String, tokio::task::JoinHandle<()>)> {
     let listener = TcpListener::bind("127.0.0.1:0").await?;
     let addr = listener.local_addr()?;
 
     let handle = tokio::spawn(async move {
         let (mut stream, _) = listener.accept().await.expect("accept connection");
-        let request = read_http_request(&mut stream)
-            .await
-            .expect("read request");
+        let request = read_http_request(&mut stream).await.expect("read request");
         assert!(request.starts_with("GET /gateway/bot HTTP/1.1"));
-        assert!(request.to_ascii_lowercase().contains("authorization: bearer smoke-token"));
+        assert!(
+            request
+                .to_ascii_lowercase()
+                .contains("authorization: bearer smoke-token")
+        );
 
         let body = json!({
             "url": gateway_url,
@@ -77,11 +81,10 @@ fn build_client(base_url: &str) -> DiscordClient<MemoryTokenProvider, MemoryStor
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn gateway_client_preserves_existing_gateway_query() {
-    let (base_url, server) = spawn_gateway_bot_server(
-        "wss://gateway.discord.gg/?v=9&encoding=etf".to_owned(),
-    )
-    .await
-    .expect("gateway bot server should start");
+    let (base_url, server) =
+        spawn_gateway_bot_server("wss://gateway.discord.gg/?v=9&encoding=etf".to_owned())
+            .await
+            .expect("gateway bot server should start");
 
     let client = build_client(&base_url);
     client
@@ -90,7 +93,10 @@ async fn gateway_client_preserves_existing_gateway_query() {
         .expect("set token");
 
     let gateway_client = client.gateway_client().await.expect("gateway client");
-    assert_eq!(gateway_client.gateway_url().query(), Some("v=9&encoding=etf"));
+    assert_eq!(
+        gateway_client.gateway_url().query(),
+        Some("v=9&encoding=etf")
+    );
 
     server.await.expect("server task should finish");
 }

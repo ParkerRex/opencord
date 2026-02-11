@@ -2,7 +2,13 @@
 
 # Rust/Cargo build output
 **/target/
+**/.build/
 
 # macOS
 .AppleDouble
 .LSOverride
+
+# Xcode user data
+**/*.xcuserstate
+**/*.xcodeproj/project.xcworkspace/xcuserdata/
+**/*.xcodeproj/xcuserdata/

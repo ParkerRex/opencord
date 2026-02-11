@@ -12,6 +12,9 @@ cargo fmt --all
 cargo check --workspace
 cargo test --workspace
 ./scripts/generate-ffi-header.sh
+
+# Optional: run app-facing backend service
+cargo run -p discord_service
 ```
 
 ## Repository Layout
@@ -31,9 +34,13 @@ opencord/
     │   ├── discord_auth/
     │   ├── discord_storage/
     │   ├── discord_client/
-    │   └── discord_ffi/
+    │   ├── discord_persistence_pg/
+    │   ├── discord_ffi/
+    │   ├── discord_service/
+    │   └── discord_voice/
     ├── docs/
-    │   └── packet/
+    │   ├── packet/
+    │   └── V1_PARITY.md
     ├── include/
     ├── scripts/
     └── target/            # local build output (generated)
@@ -51,6 +58,7 @@ opencord/
 - `Cargo.lock`: pinned dependency graph.
 - `crates/`: all first-party crates in this workspace.
 - `docs/packet/`: planning and architecture packet (Rust + Swift integration).
+- `docs/V1_PARITY.md`: execution tracking matrix for V1 feature parity.
 - `include/`: generated C header output (`discord_ffi.h`).
 - `scripts/`: local automation scripts for checks, FFI generation, and scaffolding.
 - `target/`: generated build artifacts (ignored in git).
@@ -64,9 +72,27 @@ opencord/
 - `discord_storage`: key-value storage abstraction + gateway session persistence helpers.
 - `discord_client`: higher-level orchestration over auth/http/storage/gateway startup.
 - `discord_ffi`: C ABI surface for embedding the client from Swift/native code.
+- `discord_persistence_pg`: Postgres-backed `KeyValueStore` adapter for durable backend/session state.
+- `discord_service`: Axum service exposing `/v1` app-facing API and realtime stream endpoints.
+- `discord_voice`: voice websocket runtime + UDP discovery primitives with reconnect handling.
 
 ### Scripts (`reconstructed/scripts/`)
 
 - `dev-check.sh`: run `fmt`, `check`, and tests.
 - `generate-ffi-header.sh`: generate `include/discord_ffi.h` via `cbindgen`.
 - `new-crate.sh <name>`: scaffold a new lib crate under `crates/`.
+
+### iOS Client Package
+
+- Swift package path: `../ios/OpenCordUIKit`
+- Runnable app target scaffold: `../ios/OpenCordUIKitApp`
+- Validate locally:
+  ```bash
+  cd ../ios/OpenCordUIKit
+  swift test
+  ```
+- Generate iOS app project:
+  ```bash
+  cd ../ios/OpenCordUIKitApp
+  xcodegen generate
+  ```

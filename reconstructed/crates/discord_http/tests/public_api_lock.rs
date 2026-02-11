@@ -1,4 +1,6 @@
-use discord_api_types::{CreateMessageRequest, GetChannelMessagesQuery, GetCurrentUserGuildsQuery};
+use discord_api_types::{
+    CreateMessageRequest, EditMessageRequest, GetChannelMessagesQuery, GetCurrentUserGuildsQuery,
+};
 use discord_http::{DiscordHttpClient, HttpError};
 use url::Url;
 
@@ -24,6 +26,14 @@ async fn _http_methods(client: &DiscordHttpClient) {
             None,
         )
         .await;
+    let _ = client
+        .patch_json::<EditMessageRequest, serde_json::Value>(
+            "channels/123/messages/456",
+            &EditMessageRequest::default(),
+            None,
+        )
+        .await;
+    let _ = client.delete_empty("channels/123/messages/456", None).await;
 
     let _ = client.get_current_user("token").await;
     let _ = client.get_gateway_bot("token").await;
@@ -37,6 +47,10 @@ async fn _http_methods(client: &DiscordHttpClient) {
     let _ = client
         .create_message("123", CreateMessageRequest::default(), "token")
         .await;
+    let _ = client
+        .edit_message("123", "456", EditMessageRequest::default(), "token")
+        .await;
+    let _ = client.delete_message("123", "456", "token").await;
 }
 
 #[test]

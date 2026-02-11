@@ -41,7 +41,10 @@ fn heartbeat_request_without_ack_forces_reconnect_on_next_tick() {
     let actions = sm.on_event(&GatewayEvent::HeartbeatRequest);
     assert!(matches!(
         actions.as_slice(),
-        [GatewayStateAction::SendHeartbeat(GatewayCommand { op: 1, d: Some(88) })]
+        [GatewayStateAction::SendHeartbeat(GatewayCommand {
+            op: 1,
+            d: Some(88)
+        })]
     ));
 
     let reconnect = sm.on_heartbeat_tick();

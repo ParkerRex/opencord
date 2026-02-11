@@ -1,6 +1,6 @@
 use discord_api_types::{
     AllowedMentionType, AllowedMentions, Channel, CreateMessageRequest, CurrentUserGuild,
-    GatewayBotInfo, Message, Snowflake, User,
+    EditMessageRequest, GatewayBotInfo, Message, Snowflake, User,
 };
 use serde_json::Value;
 
@@ -12,6 +12,7 @@ fn fixture(path: &str) -> &'static str {
         "guild_channels" => include_str!("fixtures/rest/guild_channels.json"),
         "channel_messages" => include_str!("fixtures/rest/channel_messages.json"),
         "create_message_request" => include_str!("fixtures/rest/create_message_request.json"),
+        "edit_message_request" => include_str!("fixtures/rest/edit_message_request.json"),
         _ => panic!("unknown fixture"),
     }
 }
@@ -101,6 +102,25 @@ fn serialize_create_message_request_matches_fixture() {
     let actual = serde_json::to_value(payload).expect("payload should serialize");
     let expected: Value = serde_json::from_str(fixture("create_message_request"))
         .expect("create message request fixture should parse");
+
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn serialize_edit_message_request_matches_fixture() {
+    let payload = EditMessageRequest {
+        content: Some("edited content".to_owned()),
+        allowed_mentions: Some(AllowedMentions {
+            parse: vec![AllowedMentionType::Users],
+            roles: None,
+            users: Some(vec![Snowflake::from("80351110224678912")]),
+            replied_user: Some(false),
+        }),
+    };
+
+    let actual = serde_json::to_value(payload).expect("payload should serialize");
+    let expected: Value = serde_json::from_str(fixture("edit_message_request"))
+        .expect("edit message request fixture should parse");
 
     assert_eq!(actual, expected);
 }

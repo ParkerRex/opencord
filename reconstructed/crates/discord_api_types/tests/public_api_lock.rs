@@ -1,9 +1,10 @@
 use discord_api_types::routes::{
-    CreateChannelMessage, GetChannelMessages, GetCurrentUser, GetCurrentUserGuilds, GetGatewayBot,
-    GetGuildChannels, JsonBodyRoute, QueryRoute, Route,
+    CreateChannelMessage, DeleteChannelMessage, EditChannelMessage, GetChannelMessages,
+    GetCurrentUser, GetCurrentUserGuilds, GetGatewayBot, GetGuildChannels, JsonBodyRoute,
+    QueryRoute, Route,
 };
 use discord_api_types::{
-    AllowedMentionType, AllowedMentions, ChannelType, CreateMessageRequest,
+    AllowedMentionType, AllowedMentions, ChannelType, CreateMessageRequest, EditMessageRequest,
     GetChannelMessagesQuery, GetCurrentUserGuildsQuery, Snowflake,
 };
 
@@ -49,4 +50,18 @@ fn api_types_public_api_lock() {
     };
     let _: &CreateMessageRequest = create_channel_message.body();
     let _ = create_channel_message.path();
+
+    let edit_channel_message = EditChannelMessage {
+        channel_id: Snowflake::from("3"),
+        message_id: Snowflake::from("4"),
+        body: EditMessageRequest::default(),
+    };
+    let _: &EditMessageRequest = edit_channel_message.body();
+    let _ = edit_channel_message.path();
+
+    let delete_channel_message = DeleteChannelMessage {
+        channel_id: Snowflake::from("3"),
+        message_id: Snowflake::from("4"),
+    };
+    let _ = delete_channel_message.path();
 }

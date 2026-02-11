@@ -33,7 +33,10 @@ fn spawn_gateway_bot_server(gateway_url: &str) -> (String, thread::JoinHandle<()
     (format!("http://{addr}"), handle)
 }
 
-fn build_client(base_url: &str, store: MemoryStore) -> DiscordClient<MemoryTokenProvider, MemoryStore> {
+fn build_client(
+    base_url: &str,
+    store: MemoryStore,
+) -> DiscordClient<MemoryTokenProvider, MemoryStore> {
     DiscordClient::new(
         DiscordHttpClient::new(Url::parse(base_url).expect("valid base URL")),
         MemoryTokenProvider::from_token("token-123"),

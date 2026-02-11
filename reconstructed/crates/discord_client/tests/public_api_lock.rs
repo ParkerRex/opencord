@@ -1,3 +1,6 @@
+use discord_api_types::{
+    CreateMessageRequest, EditMessageRequest, GetChannelMessagesQuery, GetCurrentUserGuildsQuery,
+};
 use discord_auth::{AuthError, MemoryTokenProvider};
 use discord_client::{ClientError, DiscordClient};
 use discord_gateway::{GatewaySession, GatewayStateMachine, GatewayStateMachineConfig};
@@ -22,6 +25,20 @@ async fn _client_methods(client: &DiscordClient<MemoryTokenProvider, MemoryStore
     let _ = client.gateway_bot().await;
     let _ = client.gateway_client().await;
     let _ = client.gateway_startup(513).await;
+    let _ = client
+        .list_guilds(GetCurrentUserGuildsQuery::default())
+        .await;
+    let _ = client.list_channels("123").await;
+    let _ = client
+        .list_messages("123", GetChannelMessagesQuery::default())
+        .await;
+    let _ = client
+        .create_message("123", CreateMessageRequest::default())
+        .await;
+    let _ = client
+        .edit_message("123", "456", EditMessageRequest::default())
+        .await;
+    let _ = client.delete_message("123", "456").await;
 
     let _ = client.cache_set_json("key", &json!({"ok": true})).await;
     let _: Result<Option<serde_json::Value>, _> = client.cache_get_json("key").await;

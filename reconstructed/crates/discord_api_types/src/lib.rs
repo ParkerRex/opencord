@@ -356,3 +356,60 @@ pub enum ApiTypeError {
     #[error("missing required token")]
     MissingToken,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::routes::{
+        CreateChannelMessage, GetChannelMessages, GetCurrentUser, GetCurrentUserGuilds,
+        GetGatewayBot, GetGuildChannels, JsonBodyRoute, QueryRoute, Route,
+    };
+    use super::{
+        ChannelType, CreateMessageRequest, GetChannelMessagesQuery, GetCurrentUserGuildsQuery,
+        Snowflake,
+    };
+
+    #[test]
+    fn channel_type_roundtrips_numeric_values() {
+        let values = [0_u16, 1, 2, 3, 4, 5, 10, 11, 12, 13, 14, 15, 16, 42];
+
+        for value in values {
+            let parsed = ChannelType::from(value);
+            let encoded: u16 = parsed.into();
+            assert_eq!(encoded, value);
+        }
+    }
+
+    #[test]
+    fn discord_routes_have_expected_paths() {
+        let get_current_user = GetCurrentUser;
+        assert_eq!(get_current_user.path(), "users/@me");
+
+        let get_gateway_bot = GetGatewayBot;
+        assert_eq!(get_gateway_bot.path(), "gateway/bot");
+
+        let get_current_user_guilds = GetCurrentUserGuilds {
+            query: GetCurrentUserGuildsQuery::default(),
+        };
+        assert_eq!(get_current_user_guilds.path(), "users/@me/guilds");
+        let _: &GetCurrentUserGuildsQuery = get_current_user_guilds.query();
+
+        let get_guild_channels = GetGuildChannels {
+            guild_id: Snowflake::from("123"),
+        };
+        assert_eq!(get_guild_channels.path(), "guilds/123/channels");
+
+        let get_channel_messages = GetChannelMessages {
+            channel_id: Snowflake::from("456"),
+            query: GetChannelMessagesQuery::default(),
+        };
+        assert_eq!(get_channel_messages.path(), "channels/456/messages");
+        let _: &GetChannelMessagesQuery = get_channel_messages.query();
+
+        let create_channel_message = CreateChannelMessage {
+            channel_id: Snowflake::from("789"),
+            body: CreateMessageRequest::default(),
+        };
+        assert_eq!(create_channel_message.path(), "channels/789/messages");
+        let _: &CreateMessageRequest = create_channel_message.body();
+    }
+}

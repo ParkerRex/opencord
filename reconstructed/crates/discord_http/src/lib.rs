@@ -210,3 +210,30 @@ where
         .unwrap_or_else(|_| String::from("<no body>"));
     Err(HttpError::Status { status, body })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{DiscordHttpClient, HttpError};
+    use url::Url;
+
+    fn client(base: &str) -> DiscordHttpClient {
+        DiscordHttpClient::new(Url::parse(base).expect("valid base URL"))
+    }
+
+    #[test]
+    fn endpoint_builds_expected_url() {
+        let client = client("https://discord.com/api/v10/");
+        let url = client
+            .endpoint("/users/@me")
+            .expect("endpoint should be valid");
+        assert_eq!(url.as_str(), "https://discord.com/api/v10/users/@me");
+    }
+
+    #[test]
+    fn endpoint_rejects_empty_path() {
+        let client = client("https://discord.com/api/v10/");
+        let error = client.endpoint("/").expect_err("expected invalid path");
+
+        assert!(matches!(error, HttpError::InvalidPath(_)));
+    }
+}

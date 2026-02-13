@@ -1,3 +1,8 @@
+Project name: OpenCord
+One liner: OpenCord is a Discord client platform with a Rust core, Swift/iOS UI shell, and FFI bridge for native app integration.
+Stack: Rust (Cargo workspace, Tokio, Axum), C FFI (cbindgen), Swift/SwiftPM/UIKit, XcodeGen.
+Problem: Building and maintaining Discord-compatible client logic separately across backend and iOS is costly and inconsistent; OpenCord centralizes protocol/client behavior in shared modules and exposes a stable app-facing API.
+
 # OpenCord Rust Workspace
 
 This repo currently centers on a Rust workspace under `reconstructed/`.
